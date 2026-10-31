@@ -248,5 +248,57 @@ document.getElementById("reset").onclick = function(){
 render();
 </script>
   <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+  <script>
+(function(){
+  try{ if(localStorage.getItem('hideInstall')==='1') return; }catch(e){}
+  var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if(standalone) return;
+  var ua = navigator.userAgent;
+  var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  var deferred = null, bar = null;
+  function hide(remember){
+    if(bar){ bar.remove(); bar=null; }
+    if(remember){ try{ localStorage.setItem('hideInstall','1'); }catch(e){} }
+  }
+  function show(text, withBtn){
+    if(bar) return;
+    bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:99;background:#2b2433;color:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px;font:600 14px/1.5 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.25)';
+    var span = document.createElement('span');
+    span.style.flex = '1';
+    span.textContent = text;
+    bar.appendChild(span);
+    if(withBtn){
+      var b = document.createElement('button');
+      b.textContent = 'Install';
+      b.style.cssText = 'border:0;background:#e58bb0;color:#fff;font:700 14px system-ui,sans-serif;padding:8px 16px;border-radius:12px;cursor:pointer';
+      b.onclick = function(){
+        if(!deferred) return;
+        deferred.prompt();
+        deferred.userChoice.then(function(){ deferred = null; hide(true); });
+      };
+      bar.appendChild(b);
+    }
+    var x = document.createElement('button');
+    x.textContent = '\u2715';
+    x.setAttribute('aria-label','Close');
+    x.style.cssText = 'border:0;background:transparent;color:#fff;font-size:18px;padding:4px 8px;cursor:pointer';
+    x.onclick = function(){ hide(true); };
+    bar.appendChild(x);
+    document.body.appendChild(bar);
+  }
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferred = e;
+    show('Add your schedule to the home screen', true);
+  });
+  window.addEventListener('appinstalled', function(){ hide(true); });
+  if(isIOS){
+    window.addEventListener('load', function(){
+      show('To install: tap the Share button, then Add to Home Screen', false);
+    });
+  }
+})();
+</script>
 </body>
 </html>
